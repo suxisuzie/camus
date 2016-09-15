@@ -292,7 +292,7 @@ public class EtlRecordReader extends RecordReader<EtlKey, CamusWrapper> {
             wrapper = getWrappedRecord(message);
 
             if (wrapper == null) {
-              throw new RuntimeException("null record");
+              log.warn("null record");
             }
           } catch (Exception e) {
             if (exceptionCount < getMaximumDecoderExceptionsToPrint(context)) {

@@ -150,10 +150,23 @@ public class EtlMultiOutputCommitter extends FileOutputCommitter {
 
   protected void commitFile(JobContext job, Path source, Path target) throws IOException {
     log.info(String.format("Moving %s to %s", source, target));
-    if (!FileSystem.get(job.getConfiguration()).rename(source, target)) {
-      log.error(String.format("Failed to move from %s to %s", source, target));
-      throw new IOException(String.format("Failed to move from %s to %s", source, target));
-    }
+      if (!FileSystem.get(job.getConfiguration()).rename(source, target)) {
+          log.error(String.format("Failed to move from %s to %s", source, target));
+          FileStatus targetFileStatus = FileSystem.get(job.getConfiguration()).getFileStatus(target);
+          if (targetFileStatus.isFile()) {
+              FileStatus sourceFileStatus = FileSystem.get(job.getConfiguration()).getFileStatus(source);
+              log.warn("Source.length: " + sourceFileStatus.getLen());
+              log.warn("target.length: " + targetFileStatus.getLen());
+              log.warn("Failed to move : sourceFile (" + sourceFileStatus.getLen() + "), targetFile (" + targetFileStatus.getLen() +
+                      ") " + " length equals = " + (sourceFileStatus.getLen() == targetFileStatus.getLen()));
+              if (FileSystem.get(job.getConfiguration()).delete(target,false)) {
+                  log.warn("Failed to move : retry move : " + FileSystem.get(job.getConfiguration()).rename(source, target));
+              }
+          } else {
+              throw new IOException(String.format("Failed to move from %s to %s", source, target));
+          }
+      }
+
   }
 
   public String getPartitionedPath(JobContext context, String file, int count, long offset) throws IOException {
